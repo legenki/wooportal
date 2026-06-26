@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>wooPortal — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-wrap">
+    <header class="options-header">
+      <div class="logo">wooPortal</div>
+      <span id="saveStatus"></span>
+    </header>
+    <main>
+      <section id="profilesSection">
+        <div class="section-header">
+          <h2>Proxy Profiles</h2>
+          <button class="btn-primary" id="addProfileBtn">+ Add Profile</button>
+        </div>
+        <div id="profilesList"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay" style="display:none;">
+    <div class="modal">
+      <h3 id="modalTitle">Add Profile</h3>
+      <label>Name
+        <input type="text" id="pName" placeholder="My Proxy">
+      </label>
+      <label>Color
+        <input type="color" id="pColor" value="#0969da">
+      </label>
+      <label>Type
+        <select id="pType">
+          <option value="http">HTTP</option>
+          <option value="https">HTTPS</option>
+          <option value="socks5">SOCKS5</option>
+          <option value="pac">PAC URL</option>
+        </select>
+      </label>
+      <div id="hostPortFields">
+        <label>Host <input type="text" id="pHost" placeholder="proxy.example.com"></label>
+        <label>Port <input type="number" id="pPort" placeholder="8080" min="1" max="65535"></label>
+      </div>
+      <div id="pacFields" style="display:none;">
+        <label>PAC URL <input type="text" id="pPacUrl" placeholder="http://..."></label>
+      </div>
+      <label>Username (optional)
+        <input type="text" id="pUser" autocomplete="off">
+      </label>
+      <label>Password (optional)
+        <input type="password" id="pPass" autocomplete="new-password">
+      </label>
+      <div class="modal-actions">
+        <button class="btn-primary" id="saveProfileBtn">Save</button>
+        <button class="btn-secondary" id="cancelModalBtn">Cancel</button>
+        <button class="btn-danger" id="deleteProfileBtn" style="display:none;">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./index.ts"></script>
+</body>
+</html>
