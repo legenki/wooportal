@@ -13,26 +13,29 @@ interface GlobeColors {
 }
 
 function lightColors(): GlobeColors {
+  // Desaturated, near-monochrome blue-grey. R/G/B kept close together so the
+  // hue reads as a soft slate rather than vivid blue.
   return {
-    ocean1: '#d6e8f7', ocean2: '#bad4ed',
-    land: '#8baabf', land2: '#7595ae',
-    gratStroke: 'rgba(100,150,190,0.25)',
-    fog1: 'rgba(255,255,255,0)', fog2: 'rgba(255,255,255,0.65)',
-    atmo1: 'rgba(100,160,240,0)', atmo2: 'rgba(100,160,240,0.22)',
+    ocean1: '#e3e9ef', ocean2: '#ccd5de',
+    land: '#a3afb9', land2: '#929fab',
+    gratStroke: 'rgba(140,155,170,0.22)',
+    fog1: 'rgba(255,255,255,0)', fog2: 'rgba(255,255,255,0.60)',
+    atmo1: 'rgba(150,175,200,0)', atmo2: 'rgba(150,175,200,0.22)',
     specular: 'rgba(255,255,255,0.10)',
-    border: 'rgba(130,175,220,0.5)',
+    border: 'rgba(165,180,195,0.45)',
   };
 }
 
 function darkColors(): GlobeColors {
+  // Desaturated slate; channels close together for a monochrome feel.
   return {
-    ocean1: '#0d1b2a', ocean2: '#08111c',
-    land: '#1e3448', land2: '#243d54',
-    gratStroke: 'rgba(30,80,140,0.3)',
-    fog1: 'rgba(13,17,23,0)', fog2: 'rgba(13,17,23,0.72)',
-    atmo1: 'rgba(40,100,220,0)', atmo2: 'rgba(40,100,220,0.18)',
+    ocean1: '#1a2026', ocean2: '#11161b',
+    land: '#2c353d', land2: '#353f48',
+    gratStroke: 'rgba(90,105,120,0.28)',
+    fog1: 'rgba(13,17,23,0)', fog2: 'rgba(13,17,23,0.70)',
+    atmo1: 'rgba(120,145,170,0)', atmo2: 'rgba(120,145,170,0.18)',
     specular: 'rgba(255,255,255,0.06)',
-    border: 'rgba(60,130,220,0.25)',
+    border: 'rgba(130,150,170,0.30)',
   };
 }
 
@@ -44,9 +47,11 @@ export class Globe {
   private graticule: GeoPermissibleObjects;
   private land: GeoPermissibleObjects | null = null;
   private rotation: [number, number, number] = [0, 0, 0];
+  private startRotation: [number, number, number] = [0, 0, 0];
   private targetRotation: [number, number, number] = [0, 0, 0];
   private animId: number | null = null;
-  private lastTime: number | null = null;
+  private animStart: number | null = null;
+  private readonly ANIM_DURATION = 900; // ms
 
   private readonly DPR: number;
   private readonly W: number;
@@ -147,9 +152,10 @@ export class Globe {
   }
 
   rotateTo(lon: number, lat: number): void {
-    this.targetRotation = [-lon, -lat * 0.28, 0];
     if (this.animId) cancelAnimationFrame(this.animId);
-    this.lastTime = null;
+    this.startRotation = [...this.rotation];
+    this.targetRotation = [-lon, -lat * 0.28, 0];
+    this.animStart = null;
     this.animId = requestAnimationFrame(t => this.animStep(t));
   }
 
@@ -158,30 +164,31 @@ export class Globe {
     return a + d * t;
   }
 
-  private animStep(time: number): void {
-    if (!this.lastTime) this.lastTime = time;
-    const dt = Math.min((time - this.lastTime) / 1000, 0.05);
-    this.lastTime = time;
+  private easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
 
-    const factor = Math.min(dt * 7, 1);
-    let settled = true;
+  private animStep(time: number): void {
+    if (!this.animStart) this.animStart = time;
+    const elapsed = time - this.animStart;
+    const progress = Math.min(elapsed / this.ANIM_DURATION, 1);
+    const eased = this.easeOutCubic(progress);
+
     for (let i = 0; i < 3; i++) {
-      const next = this.lerpAngle(this.rotation[i], this.targetRotation[i], factor);
-      if (Math.abs(next - this.rotation[i]) > 0.01) settled = false;
-      this.rotation[i] = next;
+      this.rotation[i] = this.lerpAngle(this.startRotation[i], this.targetRotation[i], eased);
     }
 
     this.proj.rotate(this.rotation);
     this.draw();
 
-    if (!settled) {
+    if (progress < 1) {
       this.animId = requestAnimationFrame(t => this.animStep(t));
     } else {
       this.rotation = [...this.targetRotation];
       this.proj.rotate(this.rotation);
       this.draw();
       this.animId = null;
-      this.lastTime = null;
+      this.animStart = null;
     }
   }
 

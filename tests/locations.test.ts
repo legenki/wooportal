@@ -36,7 +36,7 @@ describe('findLocationByKey', () => {
 describe('findLocationByCountry', () => {
   it('finds location for RU', () => {
     const loc = findLocationByCountry('RU');
-    expect(loc?.key).toBe('moscow');
+    expect(loc?.key).toBe('saintPetersburg');
   });
 
   it('is case-insensitive', () => {

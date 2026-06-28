@@ -6,9 +6,11 @@ const DEFAULT_GEO: GeoSettings = { enabled: false };
 
 const DEFAULT_DATA: WooPortalData = {
   version: 3,
+  enabled: true,
   mode: 'system',
   profiles: [],
   activeProfileId: undefined,
+  lastProfileId: undefined,
   geo: DEFAULT_GEO,
   syncEnabled: true,
   syncDismissed: [],
@@ -42,9 +44,11 @@ export function migrateData(raw: unknown): WooPortalData {
       ...DEFAULT_DATA,
       ...(data as Partial<WooPortalData>),
       version: 3,
+      enabled: data.enabled === undefined ? true : !!data.enabled,
       mode,
       profiles: profiles as WooPortalData['profiles'],
       activeProfileId: mode === 'profile' ? data.activeProfileId as string : undefined,
+      lastProfileId: (data.lastProfileId as string | undefined) ?? (mode === 'profile' ? data.activeProfileId as string : undefined),
     };
   }
 

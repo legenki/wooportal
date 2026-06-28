@@ -1,6 +1,6 @@
 import type { ProxyProfile, WooPortalData } from '../types';
 import { readData, writeData } from '../lib/storage';
-import { resolveIconPaths } from '../lib/icon-paths';
+import { refreshIcon } from './icon';
 
 function generatePAC(profile: ProxyProfile): string {
   const { type, host, port } = profile.config;
@@ -49,11 +49,13 @@ export async function activateProxy(profileId: string): Promise<{ success: boole
     }
 
     await chrome.proxy.settings.set({ value: config, scope: 'regular' });
+    console.log('[wooPortal] proxy activated:', JSON.stringify(config));
     const updated: WooPortalData = { ...data, mode: 'profile', activeProfileId: profileId };
     await writeData(updated);
-    updateIcon(profile.color, 'profile');
+    await refreshIcon();
     return { success: true };
   } catch (e) {
+    console.error('[wooPortal] activateProxy failed:', e);
     return { success: false, error: (e as Error).message };
   }
 }
@@ -64,26 +66,9 @@ export async function deactivateProxy(): Promise<{ success: boolean; error?: str
     await chrome.proxy.settings.set({ value: { mode: 'system' }, scope: 'regular' });
     const data = await readData();
     await writeData({ ...data, mode: 'system', activeProfileId: undefined });
-    updateIcon(null, 'system');
+    await refreshIcon();
     return { success: true };
   } catch (e) {
     return { success: false, error: (e as Error).message };
   }
-}
-
-export async function setDirectMode(): Promise<{ success: boolean; error?: string }> {
-  try {
-    await chrome.proxy.settings.clear({ scope: 'regular' });
-    await chrome.proxy.settings.set({ value: { mode: 'direct' }, scope: 'regular' });
-    const data = await readData();
-    await writeData({ ...data, mode: 'direct', activeProfileId: undefined });
-    updateIcon(null, 'direct');
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: (e as Error).message };
-  }
-}
-
-export function updateIcon(color: string | null, mode: string | null): void {
-  chrome.action.setIcon({ path: resolveIconPaths(color, mode) }).catch(() => {});
 }

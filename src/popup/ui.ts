@@ -1,4 +1,4 @@
-import { LOCATIONS } from '../lib/locations';
+import { LOCATIONS, DEFAULT_LOCATION_KEYS } from '../lib/locations';
 import type { Location } from '../lib/locations';
 import type { BgState, SyncSuggestion } from '../types';
 
@@ -9,13 +9,25 @@ export function renderCityGrid(
   onSelect: (loc: Location) => void,
 ): void {
   const q = filter.toLowerCase();
-  const filtered = q ? LOCATIONS.filter(l => l.name.toLowerCase().includes(q)) : LOCATIONS;
+  let filtered: Location[];
+  if (q) {
+    filtered = LOCATIONS.filter(l =>
+      l.name.toLowerCase().includes(q) || l.country.toLowerCase().includes(q)
+    );
+  } else {
+    const defaults = DEFAULT_LOCATION_KEYS.map(k => LOCATIONS.find(l => l.key === k)!).filter(Boolean);
+    // Also include active location if it's not in defaults
+    const active = activeKey ? LOCATIONS.find(l => l.key === activeKey) : null;
+    filtered = active && !DEFAULT_LOCATION_KEYS.includes(activeKey!)
+      ? [...defaults, active]
+      : defaults;
+  }
   container.innerHTML = filtered.map(loc => `
     <button class="city-btn ${loc.key === activeKey ? 'active' : ''}" data-key="${loc.key}">
       <span class="city-flag">${loc.flag}</span>
       <span>
         <div class="city-name">${escHtml(loc.name)}</div>
-        <div class="city-tz">${escHtml(loc.timezone.split('/')[1]?.replace('_', ' ') ?? loc.timezone)}</div>
+        <div class="city-tz">${escHtml(loc.country)}</div>
       </span>
     </button>`).join('');
   container.querySelectorAll<HTMLButtonElement>('.city-btn').forEach(btn => {
@@ -34,6 +46,8 @@ export function renderProxySection(
   colorDot: HTMLElement,
   emptyEl: HTMLElement,
   state: BgState,
+  onActivate?: (id: string) => void,
+  onDeactivate?: () => void,
 ): void {
   if (state.mode === 'profile' && state.activeProfile) {
     const p = state.activeProfile;
@@ -46,9 +60,27 @@ export function renderProxySection(
     badgeEl.textContent = 'Active';
     card.style.display = 'flex';
     emptyEl.style.display = 'none';
+    card.onclick = onDeactivate ? () => onDeactivate() : null;
+  } else if (state.profiles && state.profiles.length > 0) {
+    card.style.display = 'none';
+    emptyEl.style.display = 'block';
+    emptyEl.innerHTML = state.profiles.map(p => `
+      <div class="proxy-card" data-id="${p.id}" style="cursor:pointer;margin-bottom:5px;">
+        <div class="proxy-color" style="background:${p.color}"></div>
+        <div class="proxy-info">
+          <div class="proxy-name">${escHtml(p.name)}</div>
+          <div class="proxy-meta">${escHtml(p.config.type.toUpperCase())} · ${escHtml(p.config.type === 'pac' ? truncate(p.config.pacUrl, 22) : `${p.config.host}:${p.config.port}`)}</div>
+        </div>
+        <span class="active-badge" style="background:var(--bg-3);color:var(--text-3);">Use</span>
+      </div>`).join('') +
+      `<div style="text-align:center;margin-top:4px;"><span class="section-link" id="addProxyBtn">+ Add profile</span></div>`;
+    emptyEl.querySelectorAll<HTMLElement>('.proxy-card').forEach(el => {
+      el.addEventListener('click', () => onActivate?.(el.dataset.id!));
+    });
   } else {
     card.style.display = 'none';
     emptyEl.style.display = 'flex';
+    emptyEl.innerHTML = 'No proxy configured <span class="section-link" id="addProxyBtn">+ Add</span>';
   }
 }
 
@@ -72,26 +104,10 @@ export function renderSuggestionBanner(
 
 export function renderStatusPills(
   geoActivePill: HTMLElement,
-  localePill: HTMLElement,
   state: BgState,
 ): void {
-  const geoOn = state.geo.enabled;
+  const geoOn = state.enabled && state.geo.enabled;
   geoActivePill.style.display = geoOn ? 'inline-flex' : 'none';
-  if (geoOn && state.geo.locale) {
-    localePill.textContent = state.geo.locale;
-    localePill.style.display = 'inline-flex';
-  } else {
-    localePill.style.display = 'none';
-  }
-}
-
-export function renderModeButtons(
-  buttons: NodeListOf<HTMLButtonElement>,
-  mode: BgState['mode'],
-): void {
-  buttons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
-  });
 }
 
 function escHtml(s: string): string {
