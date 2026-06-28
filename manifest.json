@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "wooPortal",
+  "name": "Nomada — Location Guard, Locale & Proxy",
   "version": "1.0.0",
-  "description": "Geo, timezone & proxy control in one place",
+  "description": "Change your location, timezone, locale & proxy in one click. Keep them in sync so sites see one consistent place.",
   "permissions": [
     "proxy",
     "storage",
